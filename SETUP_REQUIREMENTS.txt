@@ -1,6 +1,10 @@
+# Written by Jacqueline Rael and Copilot Agent
+# Date: 12/09/2025
+# Lab: Final Project
+
 chess==1.9.4
 pyperclip==1.8.2
-PySimpleGUI==5.0.10
+PySimpleGUI==5.0.8.3
 rsa==4.9.1
 pyasn1>=0.1.3
 python-dotenv

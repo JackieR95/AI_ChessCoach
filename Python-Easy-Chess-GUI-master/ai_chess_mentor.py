@@ -1,4 +1,8 @@
 """
+# Written by Jacqueline Rael and Copilot Agent
+# Date: 12/09/2025
+# Lab: Final Project
+
 ai_chess_mentor.py
 
 A Chess Mentor module that:
@@ -97,6 +101,8 @@ class ChessMentor:
     def _find_stockfish(self):
         """Try to find Stockfish in common locations"""
         common_paths = [
+            'Engines/stockfish-windows-x86-64-avx2.exe',  # Windows AVX2 version
+            'Engines/stockfish-windows-x86-64.exe',       # Windows generic
             'Engines/stockfish',
             'Engines/stockfish.exe',
             'stockfish',
@@ -105,8 +111,10 @@ class ChessMentor:
 
         for path in common_paths:
             if os.path.exists(path):
+                logger.info(f"Found Stockfish at: {path}")
                 return path
 
+        logger.warning("Stockfish not found in common locations")
         return None
 
     def evaluate_move(self, board, move, depth=20, time_limit=1):
@@ -123,11 +131,14 @@ class ChessMentor:
             dict with keys: 'score', 'mate', 'quality', 'explanation'
         """
         if not self.engine:
+            logger.warning("Stockfish engine not available for evaluation - returning basic assessment")
+            # Fallback: return Neutral quality for all moves
             return {
                 'score': None,
                 'mate': None,
-                'quality': 'Unknown',
-                'explanation': 'Stockfish not available'
+                'quality': '= Neutral (engine unavailable)',
+                'score_diff': 0,
+                'explanation': 'Engine analysis not available'
             }
 
         try:
@@ -137,6 +148,7 @@ class ChessMentor:
                 chess.engine.Limit(depth=depth, time=time_limit)
             )
             score_before = info_before.get('score')
+            logger.debug(f"Score before move: {score_before}")
 
             # Make the move and evaluate
             board_copy = board.copy()
@@ -147,11 +159,13 @@ class ChessMentor:
                 chess.engine.Limit(depth=depth, time=time_limit)
             )
             score_after = info_after.get('score')
+            logger.debug(f"Score after move: {score_after}")
 
             # Calculate move quality
             quality, score_diff = self._calculate_quality(
                 score_before, score_after, board.turn
             )
+            logger.debug(f"Move quality calculated: {quality}, diff: {score_diff}")
 
             return {
                 'score': score_after,
@@ -162,7 +176,7 @@ class ChessMentor:
             }
 
         except Exception as e:
-            logger.error(f"Error evaluating move: {e}")
+            logger.error(f"Error evaluating move: {e}", exc_info=True)
             return {
                 'score': None,
                 'mate': None,
@@ -173,21 +187,24 @@ class ChessMentor:
     def _score_to_cp(self, score_obj, pov_color):
         """Convert a chess.engine.PovScore/Score to centipawns from pov_color."""
         if score_obj is None:
-            return None
+            return 0  # Return 0 instead of None for neutral position
 
         try:
             # PovScore: use .pov(color).score() for a signed cp value
             if isinstance(score_obj, chess.engine.PovScore):
-                return score_obj.pov(pov_color).score(mate_score=100000)
+                cp_value = score_obj.pov(pov_color).score(mate_score=100000)
+                return cp_value if cp_value is not None else 0
 
             # Score: convert to PovScore via .pov()
             if isinstance(score_obj, chess.engine.Score):
-                return score_obj.pov(pov_color).score(mate_score=100000)
+                cp_value = score_obj.pov(pov_color).score(mate_score=100000)
+                return cp_value if cp_value is not None else 0
 
             # Fallback: already numeric
-            return float(score_obj)
-        except Exception:
-            return None
+            return float(score_obj) if score_obj else 0
+        except Exception as e:
+            logger.warning(f"Error converting score to centipawns: {e}")
+            return 0
 
     def _calculate_quality(self, score_before, score_after, is_white):
         """
@@ -196,11 +213,12 @@ class ChessMentor:
         Returns:
             tuple: (quality_string, score_difference)
         """
+        # If either score is None, we can't calculate quality
+        if score_before is None and score_after is None:
+            return 'Unknown', None
+
         before_cp = self._score_to_cp(score_before, chess.WHITE if is_white else chess.BLACK)
         after_cp = self._score_to_cp(score_after, chess.WHITE if is_white else chess.BLACK)
-
-        if before_cp is None or after_cp is None:
-            return 'Unknown', None
 
         score_diff = after_cp - before_cp
 
@@ -294,13 +312,24 @@ Keep it concise and educational."""
             str: Formatted output for comment box
         """
         output = f"Move: {san_move}\n"
-        output += f"Quality: {analysis.get('quality', 'Unknown')}\n"
+        
+        # Get quality with debugging
+        quality = analysis.get('quality', 'Unknown')
+        logger.debug(f"Format output - Quality: {quality}")
+        output += f"Quality: {quality}\n"
 
         if analysis.get('score_diff') is not None:
-            output += f"Score Change: {analysis['score_diff']:+.1f}cp\n"
+            try:
+                output += f"Score Change: {analysis['score_diff']:+.1f}cp\n"
+            except (ValueError, TypeError):
+                output += f"Score Change: {analysis['score_diff']}cp\n"
 
         if analysis.get('explanation'):
             output += f"\n{analysis['explanation']}\n"
+        else:
+            # Show if no explanation was available
+            if not quality.startswith('⭐') and not quality.startswith('✓') and not quality.startswith('=') and not quality.startswith('⚠️') and not quality.startswith('❌'):
+                output += "\n(Stockfish analysis not available)\n"
 
         return output
 

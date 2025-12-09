@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+# Written by Jacqueline Rael and Copilot Agent
+# Date: 12/09/2025
+# Lab: Final Project
+
 python_easy_chess_gui.py
 
 Requirements:
@@ -1497,12 +1501,12 @@ class EasyChessGui:
                             image_filename=piece_image, )
 
     def render_square(self, image, key, location):
-        """ Returns an RButton (Read Button) with image image """
+        """ Returns a Button with image image """
         if (location[0] + location[1]) % 2:
             color = self.sq_dark_color  # Dark square
         else:
             color = self.sq_light_color
-        return sg.RButton('', image_filename=image, size=(1, 1),
+        return sg.Button('', image_filename=image, size=(1, 1),
                           border_width=0, button_color=('white', color),
                           pad=(0, 0), key=key)
 
@@ -1675,13 +1679,62 @@ class EasyChessGui:
 
         return timer
 
-    def play_game(self, window: sg.Window, board: chess.Board):
+    def select_difficulty(self):
+        """Display a dialog to select game difficulty.
+
+        Returns:
+            str: 'easy', 'medium', 'hard', or None if cancelled
+        """
+        layout = [
+            [sg.Text('Select Game Difficulty:', font=('Consolas', 14), justification='center')],
+            [sg.Text('')],
+            [sg.Button('Easy', size=(15, 2), font=('Consolas', 12), key='easy_k'),
+             sg.Button('Medium', size=(15, 2), font=('Consolas', 12), key='medium_k'),
+             sg.Button('Hard', size=(15, 2), font=('Consolas', 12), key='hard_k')],
+            [sg.Button('Cancel', size=(47, 1), font=('Consolas', 12))]
+        ]
+
+        window = sg.Window('Game Difficulty', layout, modal=True, icon=ico_path[platform]['pecg'])
+
+        while True:
+            button, value = window.Read()
+
+            if button == 'easy_k':
+                window.Close()
+                return 'easy'
+            elif button == 'medium_k':
+                window.Close()
+                return 'medium'
+            elif button == 'hard_k':
+                window.Close()
+                return 'hard'
+            elif button in (None, 'Cancel'):
+                window.Close()
+                return None
+
+    def play_game(self, window: sg.Window, board: chess.Board, difficulty: str = 'medium'):
         """Play a game against an engine or human.
 
         Args:
           window: A PySimplegUI window.
           board: current board position
+          difficulty: Game difficulty - 'easy', 'medium', or 'hard'
         """
+        # Set search depth based on difficulty
+        difficulty_settings = {
+            'easy': 3,
+            'medium': 8,
+            'hard': 18
+        }
+        search_depth = difficulty_settings.get(difficulty, 8)
+
+        # Display selected difficulty
+        difficulty_display = difficulty.capitalize()
+        window.find_element('_gamestatus_').Update(f'Mode     Play - Difficulty: {difficulty_display}')
+
+        # Set engine search depth based on difficulty
+        self.max_depth = search_depth
+
         window.find_element('_movelist_').Update(disabled=False)
         window.find_element('_movelist_').Update('', disabled=True)
 
@@ -2529,65 +2582,65 @@ class EasyChessGui:
         """
         try:
             sg.theme(self.gui_theme)
-        except AttributeError:
-            sg.ChangeLookAndFeel(self.gui_theme)
+        except (AttributeError, TypeError):
+            pass
         try:
             sg.set_options(margins=(0, 3), border_width=1)
-        except AttributeError:
-            sg.SetOptions(margins=(0, 3), border_width=1)
+        except (AttributeError, TypeError):
+            pass
 
         # Define board
         board_layout = self.create_board(is_user_white)
 
         board_controls = [
-            [sg.Text('Mode     Neutral', size=(36, 1), font=('Consolas', 10), key='_gamestatus_')],
-            [sg.Text('White', size=(7, 1), font=('Consolas', 10)),
-             sg.Text('Human', font=('Consolas', 10), key='_White_',
-                     size=(24, 1), relief='sunken'),
-             sg.Text('', font=('Consolas', 10), key='w_base_time_k',
-                     size=(11, 1), relief='sunken'),
-             sg.Text('', font=('Consolas', 10), key='w_elapse_k', size=(7, 1),
+            [sg.Text('Mode     Neutral', size=(50, 1), font=('Consolas', 12), key='_gamestatus_')],
+            [sg.Text('White', size=(10, 1), font=('Consolas', 12)),
+             sg.Text('Human', font=('Consolas', 12), key='_White_',
+                     size=(30, 1), relief='sunken'),
+             sg.Text('', font=('Consolas', 12), key='w_base_time_k',
+                     size=(15, 1), relief='sunken'),
+             sg.Text('', font=('Consolas', 12), key='w_elapse_k', size=(10, 1),
                      relief='sunken')
              ],
-            [sg.Text('Black', size=(7, 1), font=('Consolas', 10)),
-             sg.Text('Computer', font=('Consolas', 10), key='_Black_',
-                     size=(24, 1), relief='sunken'),
-             sg.Text('', font=('Consolas', 10), key='b_base_time_k',
-                     size=(11, 1), relief='sunken'),
-             sg.Text('', font=('Consolas', 10), key='b_elapse_k', size=(7, 1),
+            [sg.Text('Black', size=(10, 1), font=('Consolas', 12)),
+             sg.Text('Computer', font=('Consolas', 12), key='_Black_',
+                     size=(30, 1), relief='sunken'),
+             sg.Text('', font=('Consolas', 12), key='b_base_time_k',
+                     size=(15, 1), relief='sunken'),
+             sg.Text('', font=('Consolas', 12), key='b_elapse_k', size=(10, 1),
                      relief='sunken')
              ],
-            [sg.Text('Adviser', size=(7, 1), font=('Consolas', 10), key='adviser_k',
+            [sg.Text('Adviser', size=(10, 1), font=('Consolas', 12), key='adviser_k',
                      right_click_menu=[
                         'Right',
                         ['Start::right_adviser_k', 'Stop::right_adviser_k']
                     ]),
-             sg.Text('', font=('Consolas', 10), key='advise_info_k', relief='sunken',
-                     size=(46, 1))],
+             sg.Text('', font=('Consolas', 12), key='advise_info_k', relief='sunken',
+                     size=(55, 1))],
 
-            [sg.Text('Move list', size=(16, 1), font=('Consolas', 10))],
-            [sg.Multiline('', do_not_clear=True, autoscroll=True, size=(52, 8),
-                          font=('Consolas', 10), key='_movelist_', disabled=True)],
+            [sg.Text('Move list', size=(20, 1), font=('Consolas', 12))],
+            [sg.Multiline('', do_not_clear=True, autoscroll=True, size=(65, 12),
+                          font=('Consolas', 11), key='_movelist_', disabled=True)],
 
-            [sg.Text('AI Coach', size=(7, 1), font=('Consolas', 10))],
-            [sg.Multiline('', do_not_clear=True, autoscroll=True, size=(52, 3),
-                          font=('Consolas', 10), key='comment_k', disabled=True)],
+            [sg.Text('AI Coach', size=(10, 1), font=('Consolas', 12))],
+            [sg.Multiline('', do_not_clear=True, autoscroll=True, size=(65, 5),
+                          font=('Consolas', 11), key='comment_k', disabled=True)],
 
-            [sg.Text('BOOK 1, Comp games', size=(26, 1),
-                     font=('Consolas', 10),
+            [sg.Text('BOOK 1, Comp games', size=(32, 1),
+                     font=('Consolas', 12),
                      right_click_menu=['Right', ['Show::right_book1_k', 'Hide::right_book1_k']]),
              sg.Text('BOOK 2, Human games',
-                     font=('Consolas', 10),
+                     font=('Consolas', 12),
                      right_click_menu=['Right', ['Show::right_book2_k', 'Hide::right_book2_k']])],
-            [sg.Multiline('', do_not_clear=True, autoscroll=False, size=(23, 4),
-                          font=('Consolas', 10), key='polyglot_book1_k', disabled=True),
-             sg.Multiline('', do_not_clear=True, autoscroll=False, size=(25, 4),
-                          font=('Consolas', 10), key='polyglot_book2_k', disabled=True)],
-            [sg.Text('Opponent Search Info', font=('Consolas', 10), size=(30, 1),
+            [sg.Multiline('', do_not_clear=True, autoscroll=False, size=(30, 5),
+                          font=('Consolas', 11), key='polyglot_book1_k', disabled=True),
+             sg.Multiline('', do_not_clear=True, autoscroll=False, size=(32, 5),
+                          font=('Consolas', 11), key='polyglot_book2_k', disabled=True)],
+            [sg.Text('Opponent Search Info', font=('Consolas', 12), size=(35, 1),
                      right_click_menu=['Right',
                                        ['Show::right_search_info_k', 'Hide::right_search_info_k']])],
-            [sg.Text('', key='search_info_all_k', size=(55, 1),
-                     font=('Consolas', 10), relief='sunken')],
+            [sg.Text('', key='search_info_all_k', size=(65, 1),
+                     font=('Consolas', 11), relief='sunken')],
         ]
 
         board_tab = [[sg.Column(board_layout)]]
@@ -2638,7 +2691,8 @@ class EasyChessGui:
         window = sg.Window('{} {}'.format(APP_NAME, APP_VERSION),
                            layout, default_button_element_size=(12, 1),
                            auto_size_buttons=False,
-                           icon=ico_path[platform]['pecg'])
+                           icon=ico_path[platform]['pecg'],
+                           size=(1400, 900))
 
         # Read user config file, if missing create and new one
         self.check_user_config_file()
@@ -3613,12 +3667,17 @@ class EasyChessGui:
 
                 while True:
                     button, value = window.Read(timeout=100)
-
                     window.find_element('_gamestatus_').Update('Mode     Play')
                     window.find_element('_movelist_').Update(disabled=False)
                     window.find_element('_movelist_').Update('', disabled=True)
 
-                    start_new_game = self.play_game(window, board)
+                    # Get difficulty selection from user
+                    difficulty = self.select_difficulty()
+                    if difficulty is None:
+                        # User cancelled, go back to Neutral mode
+                        break
+
+                    start_new_game = self.play_game(window, board, difficulty)
                     window.find_element('_gamestatus_').Update('Mode     Neutral')
 
                     self.psg_board = copy.deepcopy(initial_board)
